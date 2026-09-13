@@ -37,6 +37,10 @@ input{
   width:100%;padding:10px;margin-top:10px;
   border-radius:8px;border:1px solid #ccc;
 }
+#rankingBox{
+  background:#fff;padding:15px;margin-top:20px;
+  border-radius:10px;display:none;
+}
 </style>
 </head>
 
@@ -51,7 +55,12 @@ input{
 </div>
 
 <!-- モード切替 -->
-<button class="modeBtn" onclick="toggleMode()">現在：<span id="modeLabel">通常問題</span>（クリックで切替）</button>
+<button class="modeBtn" onclick="toggleMode()">現在：
+  <span id="modeLabel">通常問題</span>（クリックで切替）
+</button>
+
+<!-- ランキング表示 -->
+<div id="rankingBox"></div>
 
 <!-- 問題カード -->
 <div class="card">
@@ -61,10 +70,9 @@ input{
   <div id="answerBox" style="display:none"></div>
 
   <input id="reverseInput" style="display:none" placeholder="用語を入力">
-
-  <button onclick="showAnswer()" id="showBtn">答えを見る</button>
   <button onclick="checkReverse()" id="reverseBtn" style="display:none">回答する</button>
 
+  <button onclick="showAnswer()" id="showBtn">答えを見る</button>
   <button style="background:#145c3a" onclick="next()">次の問題へ</button>
 </div>
 
@@ -72,7 +80,7 @@ input{
 
 <script>
 // ===============================
-// 正答率記録
+// 正答率記録（全体）
 // ===============================
 let correctCount = 0;
 let wrongCount = 0;
@@ -94,86 +102,130 @@ function updateRate(){
 updateRate();
 
 // ===============================
-// 用語データ
+// 用語データ（用語別スコア付き）
 // ===============================
 const DATA = [
-  {t:"伊勢崎 中心市街地が衰退した理由", a:"基幹産業の衰退、車社会化、郊外大型店の台頭、商店街の高齢化、都市計画の長期化が重なった。"},
-  {t:"モータリゼーション", a:"自家用車中心の生活様式への転換。郊外大型店が伸び中心市街地が不利になる。"},
-  {t:"伊勢崎市商工労働課", a:"まちなかのシャッター化改善のため「まちなか宝探し」などの企画を主導。"},
-  {t:"RESAS", a:"国が提供する地域経済分析システム。人口・産業・観光データを可視化できる。"},
-  {t:"伊勢崎銘仙", a:"伊勢崎周辺で作られた平織りの絹織物。大正〜昭和初期に普段着として人気。"},
-  {t:"併用絣", a:"縦糸と横糸を型紙で染める技法。糸のズレで独特のかすれ柄が生まれる。"},
-  {t:"銘仙", a:"大正〜昭和初期に流行した平織り絹織物。玉糸を使い日常着として普及。"},
-  {t:"カレー", a:"複数のスパイスで具材を煮込む料理。インド発祥で日本独自の文化へ発展。"},
-  {t:"日本のルーカレー", a:"小麦粉とルーでとろみをつけた甘みとコクのあるカレーライス。"},
-  {t:"インドカレー", a:"スパイスを炒めて香りを立て、トマトやヨーグルトで作るサラッとしたカレー。"},
-  {t:"タイカレー", a:"ハーブペーストとココナッツミルクを使う爽やかな辛みのカレー。"},
-  {t:"欧風カレー", a:"フォンやバターを使った濃厚で深い味わいのカレー。"},
-  {t:"北インドカレー", a:"濃厚でクリーミー。ナンやチャパティと食べる。乳製品を多用。"},
-  {t:"南インドカレー", a:"サラッとして甘酸っぱく、米と食べるスタイルが中心。"},
-  {t:"カレーの夏バテ予防効果", a:"スパイスの薬膳効果、発汗作用、栄養バランスの高さが理由。"},
-  {t:"インドのベジタリアン", a:"人口の30〜40%。宗教的理由で肉・魚・卵を避け、乳製品は摂取。"},
-  {t:"伊勢崎市の外国人住民", a:"人口の約8.2〜8.3%。製造業の雇用を支え、多文化が定着。"},
-  {t:"多文化共生のメリット", a:"労働力確保、人口減少の緩和、文化の多様化、行政ノウハウ蓄積。"},
-  {t:"多文化共生のデメリット", a:"生活習慣の違い、言語の壁、コミュニティ分断、治安への不安感。"},
-  {t:"レトロモダン", a:"懐かしさと現代的デザインを融合したスタイル。"},
-  {t:"グローカル", a:"Think globally, act locally。世界視野と地域性の融合。"},
-  {t:"ブランディング", a:"顧客の頭の中に独自イメージを築く活動。"},
-  {t:"マーケティング", a:"商品が自然に売れる仕組みを作る活動（調査→設計→販売→改善）。"},
-  {t:"経営学", a:"組織が資源を活かして目標を達成する仕組みを研究する学問。"},
-  {t:"社会学", a:"社会の仕組みや人々のつながりの背景を解き明かす学問。"},
-  {t:"データサイエンス", a:"統計・AI・ITで価値ある法則を見つける学問。意思決定の武器。"},
-  {t:"行動心理学", a:"行動を観察して心理を読み解く学問。回遊促進に応用可能。"},
-  {t:"地域資源", a:"地域特有の活性化に使える資産。"},
-  {t:"リノベーション", a:"既存建物を新築以上の価値に高める改修。"},
-  {t:"秩父のまちおこし", a:"アニメ、ウイスキー、鉄道、温泉、官民協働が成功要因。"},
-  {t:"アルベルゴ・ディフーゾ", a:"街全体をホテルのように運営する分散型観光モデル。"},
-  {t:"シビックプライド", a:"地域への誇り・愛着・当事者意識。参加を支える力。"},
-  {t:"アーユルヴェーダ", a:"インドの伝統医学。心身のバランスを整える生活の知恵。"},
-  {t:"地域内経済循環", a:"所得が地域内で循環し続ける仕組み。地方創生の核心。"},
-  {t:"チャレンジショップ", a:"低リスクで期間限定出店できる仕組み。"},
-  {t:"年貸し販売棚", a:"棚の一区画を年間契約でレンタルし委託販売できる仕組み。"},
-  {t:"Haji-Maru", a:"築100年の空き家を改修した複合施設。飲食・本棚・イベント。"},
-  {t:"居抜き物件", a:"前テナントの内装・設備をそのまま使える物件。初期費用を削減。"},
-  {t:"什器", a:"店舗で使う家具・器具の総称。"},
-  {t:"日本政策金融公庫", a:"国が出資する金融機関。創業融資を行う。"},
-  {t:"収支目標", a:"売上・経費・利益の具体的な数値目標。"},
-  {t:"DIY", a:"専門業者に頼らず自分で内装や家具を作ること。"},
-  {t:"価値創発", a:"異なる人や技術が混ざり新しい価値が突発的に生まれる現象。"},
-  {t:"ソーシャルイノベーション", a:"社会課題を革新的な仕組みで解決する変革。"},
-  {t:"実践知", a:"状況に応じて望ましい行動を判断し実践する力。"},
-  {t:"サイバー空間", a:"インターネット上の仮想情報空間。リアルとの融合が重要。"},
-  {t:"財政学", a:"政府の財政活動が社会に与える影響を研究する学問。"},
-  {t:"グローバル社会", a:"国境を越えて人・モノ・情報が移動し相互に影響し合う社会。"},
-  {t:"国際観光論", a:"国際観光を経済・文化・政策など多角的に研究する学問。"},
-  {t:"経営心理学", a:"組織の心理・行動を解明し経営に活かす学問。"},
-  {t:"政策提言", a:"社会課題解決のため行政へ具体的政策を提案すること。"},
-  {t:"多文化共生", a:"異なる文化の人々が対等に共に生きること。"},
-  {t:"地方創生", a:"人口減少と一極集中を是正し地域の強みで持続可能社会を作る政策。"}
+  {t:"伊勢崎 中心市街地が衰退した理由", a:"基幹産業の衰退、車社会化、郊外大型店の台頭、商店街の高齢化、都市計画の長期化が重なった。", correct:0, wrong:0},
+  {t:"モータリゼーション", a:"自家用車中心の生活様式への転換。郊外大型店が伸び中心市街地が不利になる。", correct:0, wrong:0},
+  {t:"伊勢崎市商工労働課", a:"まちなかのシャッター化改善のため「まちなか宝探し」などの企画を主導。", correct:0, wrong:0},
+  {t:"RESAS", a:"国が提供する地域経済分析システム。人口・産業・観光データを可視化できる。", correct:0, wrong:0},
+  {t:"伊勢崎銘仙", a:"伊勢崎周辺で作られた平織りの絹織物。大正〜昭和初期に普段着として人気。", correct:0, wrong:0},
+  {t:"併用絣", a:"縦糸と横糸を型紙で染める技法。糸のズレで独特のかすれ柄が生まれる。", correct:0, wrong:0},
+  {t:"銘仙", a:"大正〜昭和初期に流行した平織り絹織物。玉糸を使い日常着として普及。", correct:0, wrong:0},
+  {t:"カレー", a:"複数のスパイスで具材を煮込む料理。インド発祥で日本独自の文化へ発展。", correct:0, wrong:0},
+  {t:"日本のルーカレー", a:"小麦粉とルーでとろみをつけた甘みとコクのあるカレーライス。", correct:0, wrong:0},
+  {t:"インドカレー", a:"スパイスを炒めて香りを立て、トマトやヨーグルトで作るサラッとしたカレー。", correct:0, wrong:0},
+  {t:"タイカレー", a:"ハーブペーストとココナッツミルクを使う爽やかな辛みのカレー。", correct:0, wrong:0},
+  {t:"欧風カレー", a:"フォンやバターを使った濃厚で深い味わいのカレー。", correct:0, wrong:0},
+  {t:"北インドカレー", a:"濃厚でクリーミー。ナンやチャパティと食べる。乳製品を多用。", correct:0, wrong:0},
+  {t:"南インドカレー", a:"サラッとして甘酸っぱく、米と食べるスタイルが中心。", correct:0, wrong:0},
+  {t:"カレーの夏バテ予防効果", a:"スパイスの薬膳効果、発汗作用、栄養バランスの高さが理由。", correct:0, wrong:0},
+  {t:"インドのベジタリアン", a:"人口の30〜40%。宗教的理由で肉・魚・卵を避け、乳製品は摂取。", correct:0, wrong:0},
+  {t:"伊勢崎市の外国人住民", a:"人口の約8.2〜8.3%。製造業の雇用を支え、多文化が定着。", correct:0, wrong:0},
+  {t:"多文化共生のメリット", a:"労働力確保、人口減少の緩和、文化の多様化、行政ノウハウ蓄積。", correct:0, wrong:0},
+  {t:"多文化共生のデメリット", a:"生活習慣の違い、言語の壁、コミュニティ分断、治安への不安感。", correct:0, wrong:0},
+  {t:"レトロモダン", a:"懐かしさと現代的デザインを融合したスタイル。", correct:0, wrong:0},
+  {t:"グローカル", a:"Think globally, act locally。世界視野と地域性の融合。", correct:0, wrong:0},
+  {t:"ブランディング", a:"顧客の頭の中に独自イメージを築く活動。", correct:0, wrong:0},
+  {t:"マーケティング", a:"商品が自然に売れる仕組みを作る活動（調査→設計→販売→改善）。", correct:0, wrong:0},
+  {t:"経営学", a:"組織が資源を活かして目標を達成する仕組みを研究する学問。", correct:0, wrong:0},
+  {t:"社会学", a:"社会の仕組みや人々のつながりの背景を解き明かす学問。", correct:0, wrong:0},
+  {t:"データサイエンス", a:"統計・AI・ITで価値ある法則を見つける学問。意思決定の武器。", correct:0, wrong:0},
+  {t:"行動心理学", a:"行動を観察して心理を読み解く学問。回遊促進に応用可能。", correct:0, wrong:0},
+  {t:"地域資源", a:"地域特有の活性化に使える資産。", correct:0, wrong:0},
+  {t:"リノベーション", a:"既存建物を新築以上の価値に高める改修。", correct:0, wrong:0},
+  {t:"秩父のまちおこし", a:"アニメ、ウイスキー、鉄道、温泉、官民協働が成功要因。", correct:0, wrong:0},
+  {t:"アルベルゴ・ディフーゾ", a:"街全体をホテルのように運営する分散型観光モデル。", correct:0, wrong:0},
+  {t:"シビックプライド", a:"地域への誇り・愛着・当事者意識。参加を支える力。", correct:0, wrong:0},
+  {t:"アーユルヴェーダ", a:"インドの伝統医学。心身のバランスを整える生活の知恵。", correct:0, wrong:0},
+  {t:"地域内経済循環", a:"所得が地域内で循環し続ける仕組み。地方創生の核心。", correct:0, wrong:0},
+  {t:"チャレンジショップ", a:"低リスクで期間限定出店できる仕組み。", correct:0, wrong:0},
+  {t:"年貸し販売棚", a:"棚の一区画を年間契約でレンタルし委託販売できる仕組み。", correct:0, wrong:0},
+  {t:"Haji-Maru", a:"築100年の空き家を改修した複合施設。飲食・本棚・イベント。", correct:0, wrong:0},
+  {t:"居抜き物件", a:"前テナントの内装・設備をそのまま使える物件。初期費用を削減。", correct:0, wrong:0},
+  {t:"什器", a:"店舗で使う家具・器具の総称。", correct:0, wrong:0},
+  {t:"日本政策金融公庫", a:"国が出資する金融機関。創業融資を行う。", correct:0, wrong:0},
+  {t:"収支目標", a:"売上・経費・利益の具体的な数値目標。", correct:0, wrong:0},
+  {t:"DIY", a:"専門業者に頼らず自分で内装や家具を作ること。", correct:0, wrong:0},
+  {t:"価値創発", a:"異なる人や技術が混ざり新しい価値が突発的に生まれる現象。", correct:0, wrong:0},
+  {t:"ソーシャルイノベーション", a:"社会課題を革新的な仕組みで解決する変革。", correct:0, wrong:0},
+  {t:"実践知", a:"状況に応じて望ましい行動を判断し実践する力。", correct:0, wrong:0},
+  {t:"サイバー空間", a:"インターネット上の仮想情報空間。リアルとの融合が重要。", correct:0, wrong:0},
+  {t:"財政学", a:"政府の財政活動が社会に与える影響を研究する学問。", correct:0, wrong:0},
+  {t:"グローバル社会", a:"国境を越えて人・モノ・情報が移動し相互に影響し合う社会。", correct:0, wrong:0},
+  {t:"国際観光論", a:"国際観光を経済・文化・政策など多角的に研究する学問。", correct:0, wrong:0},
+  {t:"経営心理学", a:"組織の心理・行動を解明し経営に活かす学問。", correct:0, wrong:0},
+  {t:"政策提言", a:"社会課題解決のため行政へ具体的政策を提案すること。", correct:0, wrong:0},
+  {t:"多文化共生", a:"異なる文化の人々が対等に共に生きること。", correct:0, wrong:0},
+  {t:"地方創生", a:"人口減少と一極集中を是正し地域の強みで持続可能社会を作る政策。", correct:0, wrong:0}
 ];
+
+// 用語別スコア読み込み
+const saved = localStorage.getItem("DATA_SCORE");
+if(saved){
+  const arr = JSON.parse(saved);
+  for(let i=0; i<DATA.length; i++){
+    DATA[i].correct = arr[i].correct;
+    DATA[i].wrong = arr[i].wrong;
+  }
+}
+
+function saveScore(){
+  localStorage.setItem("DATA_SCORE", JSON.stringify(DATA));
+}
+
+// ===============================
+// 学習ログ
+// ===============================
+function logStudy(){
+  const today = new Date().toISOString().slice(0,10);
+  let log = JSON.parse(localStorage.getItem("STUDY_LOG") || "{}");
+
+  if(!log[today]) log[today] = 0;
+  log[today]++;
+
+  localStorage.setItem("STUDY_LOG", JSON.stringify(log));
+}
+
+function showLog(){
+  const log = JSON.parse(localStorage.getItem("STUDY_LOG") || "{}");
+  let html = "<h3>学習ログ</h3>";
+
+  for(const day in log){
+    html += `<p>${day}：${log[day]}問</p>`;
+  }
+
+  document.getElementById("rankingBox").innerHTML = html;
+  document.getElementById("rankingBox").style.display = "block";
+}
 
 // ===============================
 // モード切替
 // ===============================
-let mode = "normal"; // normal / blank / choice / reverse
+let mode = "normal"; // normal / blank / choice / reverse / weak / ranking / log
 
 function toggleMode(){
   if(mode === "normal") mode = "blank";
   else if(mode === "blank") mode = "choice";
   else if(mode === "choice") mode = "reverse";
+  else if(mode === "reverse") mode = "weak";
+  else if(mode === "weak") mode = "ranking";
+  else if(mode === "ranking") mode = "log";
   else mode = "normal";
 
   const label = {
     normal: "通常問題",
     blank: "穴埋め問題",
     choice: "四択問題",
-    reverse: "逆引き問題"
+    reverse: "逆引き問題",
+    weak: "弱点出題",
+    ranking: "正答率ランキング",
+    log: "学習ログ"
   };
 
   document.getElementById("modeLabel").textContent = label[mode];
   render();
 }
-
 // ===============================
 // 出題ロジック
 // ===============================
@@ -191,6 +243,8 @@ shuffle();
 function renderNormal(){
   const term = DATA[idx].t;
   const ans = DATA[idx].a;
+
+  document.getElementById("rankingBox").style.display = "none";
 
   document.getElementById("term").textContent = term;
   document.getElementById("questionText").textContent = "説明を答えてください。";
@@ -214,6 +268,8 @@ function renderBlank(){
   const term = DATA[idx].t;
   const ans = DATA[idx].a;
 
+  document.getElementById("rankingBox").style.display = "none";
+
   document.getElementById("term").textContent = term;
   document.getElementById("questionText").textContent = "穴埋め部分を答えてください：";
 
@@ -236,6 +292,8 @@ function renderMultipleChoice(){
   const term = DATA[idx].t;
   const ans = DATA[idx].a;
 
+  document.getElementById("rankingBox").style.display = "none";
+
   document.getElementById("term").textContent = "この説明の用語は？";
   document.getElementById("questionText").textContent = ans;
 
@@ -254,23 +312,29 @@ function renderMultipleChoice(){
 }
 
 function checkChoice(selected){
-  const correct = DATA[idx].t;
+  const correctTerm = DATA[idx].t;
 
-  if(selected === correct){
+  if(selected === correctTerm){
+    DATA[idx].correct++;
     correctCount++;
     alert("正解！");
   }else{
+    DATA[idx].wrong++;
     wrongCount++;
-    alert("不正解… 正解は「" + correct + "」");
+    alert("不正解… 正解は「" + correctTerm + "」");
   }
 
+  saveScore();
   updateRate();
+  logStudy();
 }
 
 // 逆引き問題
 function renderReverse(){
   const term = DATA[idx].t;
   const ans = DATA[idx].a;
+
+  document.getElementById("rankingBox").style.display = "none";
 
   document.getElementById("term").textContent = "この説明の用語は？";
   document.getElementById("questionText").textContent = ans;
@@ -283,34 +347,81 @@ function renderReverse(){
 
 function checkReverse(){
   const userAnswer = document.getElementById("reverseInput").value.trim();
-  const correct = DATA[idx].t;
+  const correctTerm = DATA[idx].t;
 
-  if(userAnswer === correct){
+  if(userAnswer === correctTerm){
+    DATA[idx].correct++;
     correctCount++;
     alert("正解！");
   }else{
+    DATA[idx].wrong++;
     wrongCount++;
-    alert(`不正解… 正解は「${correct}」`);
+    alert(`不正解… 正解は「${correctTerm}」`);
   }
 
+  saveScore();
   updateRate();
+  logStudy();
 }
 
-// モード統合
+// 弱点出題
+function pickWeak(){
+  document.getElementById("rankingBox").style.display = "none";
+
+  const sorted = DATA
+    .map((item, i) => ({...item, index:i}))
+    .sort((a,b)=>{
+      const ar = a.correct + a.wrong === 0 ? 0 : a.correct/(a.correct+a.wrong);
+      const br = b.correct + b.wrong === 0 ? 0 : b.correct/(b.correct+b.wrong);
+      return ar - br; // 正答率が低い順
+    });
+
+  idx = sorted[0].index;
+  renderNormal();
+}
+
+// 正答率ランキング
+function showRanking(){
+  let list = DATA.map(item=>{
+    const total = item.correct + item.wrong;
+    const rate = total === 0 ? 0 : Math.round(item.correct/total*100);
+    return {term:item.t, rate};
+  }).sort((a,b)=>a.rate - b.rate);
+
+  let html = "<h3>正答率ランキング（苦手→得意）</h3>";
+  list.forEach(item=>{
+    html += `<p>${item.term}：${item.rate}%</p>`;
+  });
+
+  document.getElementById("rankingBox").innerHTML = html;
+  document.getElementById("rankingBox").style.display = "block";
+}
+// ===============================
+// モード統合（render）
+// ===============================
 function render(){
   if(mode === "normal") renderNormal();
   else if(mode === "blank") renderBlank();
   else if(mode === "choice") renderMultipleChoice();
   else if(mode === "reverse") renderReverse();
+  else if(mode === "weak") pickWeak();
+  else if(mode === "ranking") showRanking();
+  else if(mode === "log") showLog();
 }
 
+// ===============================
+// 次の問題へ
+// ===============================
 function next(){
   idx = (idx + 1) % DATA.length;
   render();
 }
 
+// ===============================
 // 初期表示
+// ===============================
 render();
+
 </script>
 
 </body>
