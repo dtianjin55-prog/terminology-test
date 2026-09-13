@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>用語集｜確認テスト（通常＋穴埋め）</title>
+<title>用語集｜総合確認テストアプリ</title>
 
 <style>
 body{
@@ -24,6 +24,7 @@ main{padding:20px}
 button{
   width:100%;padding:14px;border:none;border-radius:8px;
   background:#0f7b8a;color:#fff;font-size:1rem;
+  margin-top:10px;
 }
 .modeBtn{
   background:#145c3a;margin-bottom:15px;
@@ -32,30 +33,68 @@ button{
   margin-top:15px;padding:15px;border-radius:10px;
   background:#eef7ff;border-left:5px solid #0f7b8a;
 }
+input{
+  width:100%;padding:10px;margin-top:10px;
+  border-radius:8px;border:1px solid #ccc;
+}
 </style>
 </head>
 
 <body>
-<header>用語集｜確認テスト（通常＋穴埋め）</header>
+<header>用語集｜総合確認テストアプリ</header>
 <main>
 
-<button class="modeBtn" onclick="toggleMode()">現在：<span id="modeLabel">通常問題</span>（タップで切替）</button>
+<!-- 正答率表示 -->
+<div style="padding:10px; background:#fff; margin:10px; border-radius:8px;">
+  <strong>正答率：</strong>
+  <span id="rate">計算中…</span>
+</div>
 
+<!-- モード切替 -->
+<button class="modeBtn" onclick="toggleMode()">現在：<span id="modeLabel">通常問題</span>（クリックで切替）</button>
+
+<!-- 問題カード -->
 <div class="card">
   <h2 id="term">読み込み中…</h2>
   <p id="questionText" style="color:#555">説明を答えてください。</p>
 
-  <button onclick="showAnswer()">答えを見る</button>
   <div id="answerBox" style="display:none"></div>
 
-  <button style="margin-top:15px;background:#145c3a" onclick="next()">次の問題へ</button>
+  <input id="reverseInput" style="display:none" placeholder="用語を入力">
+
+  <button onclick="showAnswer()" id="showBtn">答えを見る</button>
+  <button onclick="checkReverse()" id="reverseBtn" style="display:none">回答する</button>
+
+  <button style="background:#145c3a" onclick="next()">次の問題へ</button>
 </div>
 
 </main>
 
 <script>
 // ===============================
-// 全用語データ（Excelから抽出済み）
+// 正答率記録
+// ===============================
+let correctCount = 0;
+let wrongCount = 0;
+
+if(localStorage.getItem("correctCount")){
+  correctCount = parseInt(localStorage.getItem("correctCount"));
+  wrongCount = parseInt(localStorage.getItem("wrongCount"));
+}
+
+function updateRate(){
+  const total = correctCount + wrongCount;
+  const rate = total === 0 ? 0 : Math.round((correctCount / total) * 100);
+  document.getElementById("rate").textContent =
+    `${correctCount} 正解 / ${wrongCount} 不正解（正答率 ${rate}%）`;
+
+  localStorage.setItem("correctCount", correctCount);
+  localStorage.setItem("wrongCount", wrongCount);
+}
+updateRate();
+
+// ===============================
+// 用語データ
 // ===============================
 const DATA = [
   {t:"伊勢崎 中心市街地が衰退した理由", a:"基幹産業の衰退、車社会化、郊外大型店の台頭、商店街の高齢化、都市計画の長期化が重なった。"},
@@ -114,14 +153,24 @@ const DATA = [
 ];
 
 // ===============================
-// 出題モード
+// モード切替
 // ===============================
-let mode = "normal"; // normal / blank
+let mode = "normal"; // normal / blank / choice / reverse
 
 function toggleMode(){
-  mode = (mode === "normal") ? "blank" : "normal";
-  document.getElementById("modeLabel").textContent =
-    mode === "normal" ? "通常問題" : "穴埋め問題";
+  if(mode === "normal") mode = "blank";
+  else if(mode === "blank") mode = "choice";
+  else if(mode === "choice") mode = "reverse";
+  else mode = "normal";
+
+  const label = {
+    normal: "通常問題",
+    blank: "穴埋め問題",
+    choice: "四択問題",
+    reverse: "逆引き問題"
+  };
+
+  document.getElementById("modeLabel").textContent = label[mode];
   render();
 }
 
@@ -138,47 +187,118 @@ function shuffle(){
 }
 shuffle();
 
+// 通常問題
+function renderNormal(){
+  const term = DATA[idx].t;
+  const ans = DATA[idx].a;
+
+  document.getElementById("term").textContent = term;
+  document.getElementById("questionText").textContent = "説明を答えてください。";
+
+  document.getElementById("answerBox").style.display = "none";
+  document.getElementById("reverseInput").style.display = "none";
+  document.getElementById("reverseBtn").style.display = "none";
+  document.getElementById("showBtn").style.display = "block";
+
+  document.getElementById("answerBox").textContent = ans;
+}
+
+// 穴埋め問題
 function makeBlank(text){
   const words = text.split(/、|。| /);
   const target = words[Math.floor(Math.random()*words.length)];
   return text.replace(target, "＿＿＿＿");
 }
 
-function render(){
+function renderBlank(){
   const term = DATA[idx].t;
   const ans = DATA[idx].a;
 
   document.getElementById("term").textContent = term;
-
-  if(mode === "normal"){
-    document.getElementById("questionText").textContent =
-      "説明を答えてください。";
-  }else{
-    document.getElementById("questionText").textContent =
-      "穴埋め部分を答えてください：";
-  }
+  document.getElementById("questionText").textContent = "穴埋め部分を答えてください：";
 
   document.getElementById("answerBox").style.display = "none";
+  document.getElementById("reverseInput").style.display = "none";
+  document.getElementById("reverseBtn").style.display = "none";
+  document.getElementById("showBtn").style.display = "block";
 
-  if(mode === "blank"){
-    document.getElementById("answerBox").textContent = makeBlank(ans);
-  }else{
-    document.getElementById("answerBox").textContent = ans;
-  }
+  document.getElementById("answerBox").textContent = makeBlank(ans);
 }
 
-function showAnswer(){
+// 四択問題
+function makeChoices(correct){
+  let others = DATA.filter(item => item.t !== correct).map(item => item.t);
+  others = others.sort(() => Math.random() - 0.5).slice(0,3);
+  return [...others, correct].sort(() => Math.random() - 0.5);
+}
+
+function renderMultipleChoice(){
+  const term = DATA[idx].t;
+  const ans = DATA[idx].a;
+
+  document.getElementById("term").textContent = "この説明の用語は？";
+  document.getElementById("questionText").textContent = ans;
+
   document.getElementById("answerBox").style.display = "block";
+  document.getElementById("reverseInput").style.display = "none";
+  document.getElementById("reverseBtn").style.display = "none";
+  document.getElementById("showBtn").style.display = "none";
+
+  const choices = makeChoices(term);
+  let html = "";
+  choices.forEach(choice => {
+    html += `<button onclick="checkChoice('${choice}')">${choice}</button>`;
+  });
+
+  document.getElementById("answerBox").innerHTML = html;
 }
 
-function next(){
-  idx = (idx + 1) % DATA.length;
-  render();
+function checkChoice(selected){
+  const correct = DATA[idx].t;
+
+  if(selected === correct){
+    correctCount++;
+    alert("正解！");
+  }else{
+    wrongCount++;
+    alert("不正解… 正解は「" + correct + "」");
+  }
+
+  updateRate();
 }
 
-// 初期表示
-render();
-</script>
+// 逆引き問題
+function renderReverse(){
+  const term = DATA[idx].t;
+  const ans = DATA[idx].a;
 
-</body>
-</html>
+  document.getElementById("term").textContent = "この説明の用語は？";
+  document.getElementById("questionText").textContent = ans;
+
+  document.getElementById("answerBox").style.display = "none";
+  document.getElementById("reverseInput").style.display = "block";
+  document.getElementById("reverseBtn").style.display = "block";
+  document.getElementById("showBtn").style.display = "none";
+}
+
+function checkReverse(){
+  const userAnswer = document.getElementById("reverseInput").value.trim();
+  const correct = DATA[idx].t;
+
+  if(userAnswer === correct){
+    correctCount++;
+    alert("正解！");
+  }else{
+    wrongCount++;
+    alert(`不正解… 正解は「${correct}」`);
+  }
+
+  updateRate();
+}
+
+// モード統合
+function render(){
+  if(mode === "normal") renderNormal();
+  else if(mode === "blank") renderBlank();
+  else if(mode === "choice") renderMultipleChoice();
+  else if(mode === "reverse") renderReverse();
