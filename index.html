@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>用語集｜確認テスト（通常＋穴埋め）</title>
+
+<style>
+body{
+  font-family:system-ui,"Yu Gothic",sans-serif;
+  margin:0;background:#f4f6f9;color:#222;
+}
+header{
+  background:linear-gradient(135deg,#13315c,#0f7b8a);
+  color:#fff;padding:18px;font-size:1.2rem;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+}
+main{padding:20px}
+.card{
+  background:#fff;padding:20px;border-radius:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);
+  margin-bottom:20px;border-left:6px solid #0f7b8a;
+}
+button{
+  width:100%;padding:14px;border:none;border-radius:8px;
+  background:#0f7b8a;color:#fff;font-size:1rem;
+}
+.modeBtn{
+  background:#145c3a;margin-bottom:15px;
+}
+#answerBox{
+  margin-top:15px;padding:15px;border-radius:10px;
+  background:#eef7ff;border-left:5px solid #0f7b8a;
+}
+</style>
+</head>
+
+<body>
+<header>用語集｜確認テスト（通常＋穴埋め）</header>
+<main>
+
+<button class="modeBtn" onclick="toggleMode()">現在：<span id="modeLabel">通常問題</span>（タップで切替）</button>
+
+<div class="card">
+  <h2 id="term">読み込み中…</h2>
+  <p id="questionText" style="color:#555">説明を答えてください。</p>
+
+  <button onclick="showAnswer()">答えを見る</button>
+  <div id="answerBox" style="display:none"></div>
+
+  <button style="margin-top:15px;background:#145c3a" onclick="next()">次の問題へ</button>
+</div>
+
+</main>
+
+<script>
+// ===============================
+// 全用語データ（Excelから抽出済み）
+// ===============================
+const DATA = [
+  {t:"伊勢崎 中心市街地が衰退した理由", a:"基幹産業の衰退、車社会化、郊外大型店の台頭、商店街の高齢化、都市計画の長期化が重なった。"},
+  {t:"モータリゼーション", a:"自家用車中心の生活様式への転換。郊外大型店が伸び中心市街地が不利になる。"},
+  {t:"伊勢崎市商工労働課", a:"まちなかのシャッター化改善のため「まちなか宝探し」などの企画を主導。"},
+  {t:"RESAS", a:"国が提供する地域経済分析システム。人口・産業・観光データを可視化できる。"},
+  {t:"伊勢崎銘仙", a:"伊勢崎周辺で作られた平織りの絹織物。大正〜昭和初期に普段着として人気。"},
+  {t:"併用絣", a:"縦糸と横糸を型紙で染める技法。糸のズレで独特のかすれ柄が生まれる。"},
+  {t:"銘仙", a:"大正〜昭和初期に流行した平織り絹織物。玉糸を使い日常着として普及。"},
+  {t:"カレー", a:"複数のスパイスで具材を煮込む料理。インド発祥で日本独自の文化へ発展。"},
+  {t:"日本のルーカレー", a:"小麦粉とルーでとろみをつけた甘みとコクのあるカレーライス。"},
+  {t:"インドカレー", a:"スパイスを炒めて香りを立て、トマトやヨーグルトで作るサラッとしたカレー。"},
+  {t:"タイカレー", a:"ハーブペーストとココナッツミルクを使う爽やかな辛みのカレー。"},
+  {t:"欧風カレー", a:"フォンやバターを使った濃厚で深い味わいのカレー。"},
+  {t:"北インドカレー", a:"濃厚でクリーミー。ナンやチャパティと食べる。乳製品を多用。"},
+  {t:"南インドカレー", a:"サラッとして甘酸っぱく、米と食べるスタイルが中心。"},
+  {t:"カレーの夏バテ予防効果", a:"スパイスの薬膳効果、発汗作用、栄養バランスの高さが理由。"},
+  {t:"インドのベジタリアン", a:"人口の30〜40%。宗教的理由で肉・魚・卵を避け、乳製品は摂取。"},
+  {t:"伊勢崎市の外国人住民", a:"人口の約8.2〜8.3%。製造業の雇用を支え、多文化が定着。"},
+  {t:"多文化共生のメリット", a:"労働力確保、人口減少の緩和、文化の多様化、行政ノウハウ蓄積。"},
+  {t:"多文化共生のデメリット", a:"生活習慣の違い、言語の壁、コミュニティ分断、治安への不安感。"},
+  {t:"レトロモダン", a:"懐かしさと現代的デザインを融合したスタイル。"},
+  {t:"グローカル", a:"Think globally, act locally。世界視野と地域性の融合。"},
+  {t:"ブランディング", a:"顧客の頭の中に独自イメージを築く活動。"},
+  {t:"マーケティング", a:"商品が自然に売れる仕組みを作る活動（調査→設計→販売→改善）。"},
+  {t:"経営学", a:"組織が資源を活かして目標を達成する仕組みを研究する学問。"},
+  {t:"社会学", a:"社会の仕組みや人々のつながりの背景を解き明かす学問。"},
+  {t:"データサイエンス", a:"統計・AI・ITで価値ある法則を見つける学問。意思決定の武器。"},
+  {t:"行動心理学", a:"行動を観察して心理を読み解く学問。回遊促進に応用可能。"},
+  {t:"地域資源", a:"地域特有の活性化に使える資産。"},
+  {t:"リノベーション", a:"既存建物を新築以上の価値に高める改修。"},
+  {t:"秩父のまちおこし", a:"アニメ、ウイスキー、鉄道、温泉、官民協働が成功要因。"},
+  {t:"アルベルゴ・ディフーゾ", a:"街全体をホテルのように運営する分散型観光モデル。"},
+  {t:"シビックプライド", a:"地域への誇り・愛着・当事者意識。参加を支える力。"},
+  {t:"アーユルヴェーダ", a:"インドの伝統医学。心身のバランスを整える生活の知恵。"},
+  {t:"地域内経済循環", a:"所得が地域内で循環し続ける仕組み。地方創生の核心。"},
+  {t:"チャレンジショップ", a:"低リスクで期間限定出店できる仕組み。"},
+  {t:"年貸し販売棚", a:"棚の一区画を年間契約でレンタルし委託販売できる仕組み。"},
+  {t:"Haji-Maru", a:"築100年の空き家を改修した複合施設。飲食・本棚・イベント。"},
+  {t:"居抜き物件", a:"前テナントの内装・設備をそのまま使える物件。初期費用を削減。"},
+  {t:"什器", a:"店舗で使う家具・器具の総称。"},
+  {t:"日本政策金融公庫", a:"国が出資する金融機関。創業融資を行う。"},
+  {t:"収支目標", a:"売上・経費・利益の具体的な数値目標。"},
+  {t:"DIY", a:"専門業者に頼らず自分で内装や家具を作ること。"},
+  {t:"価値創発", a:"異なる人や技術が混ざり新しい価値が突発的に生まれる現象。"},
+  {t:"ソーシャルイノベーション", a:"社会課題を革新的な仕組みで解決する変革。"},
+  {t:"実践知", a:"状況に応じて望ましい行動を判断し実践する力。"},
+  {t:"サイバー空間", a:"インターネット上の仮想情報空間。リアルとの融合が重要。"},
+  {t:"財政学", a:"政府の財政活動が社会に与える影響を研究する学問。"},
+  {t:"グローバル社会", a:"国境を越えて人・モノ・情報が移動し相互に影響し合う社会。"},
+  {t:"国際観光論", a:"国際観光を経済・文化・政策など多角的に研究する学問。"},
+  {t:"経営心理学", a:"組織の心理・行動を解明し経営に活かす学問。"},
+  {t:"政策提言", a:"社会課題解決のため行政へ具体的政策を提案すること。"},
+  {t:"多文化共生", a:"異なる文化の人々が対等に共に生きること。"},
+  {t:"地方創生", a:"人口減少と一極集中を是正し地域の強みで持続可能社会を作る政策。"}
+];
+
+// ===============================
+// 出題モード
+// ===============================
+let mode = "normal"; // normal / blank
+
+function toggleMode(){
+  mode = (mode === "normal") ? "blank" : "normal";
+  document.getElementById("modeLabel").textContent =
+    mode === "normal" ? "通常問題" : "穴埋め問題";
+  render();
+}
+
+// ===============================
+// 出題ロジック
+// ===============================
+let idx = 0;
+
+function shuffle(){
+  for(let i = DATA.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [DATA[i], DATA[j]] = [DATA[j], DATA[i]];
+  }
+}
+shuffle();
+
+function makeBlank(text){
+  const words = text.split(/、|。| /);
+  const target = words[Math.floor(Math.random()*words.length)];
+  return text.replace(target, "＿＿＿＿");
+}
+
+function render(){
+  const term = DATA[idx].t;
+  const ans = DATA[idx].a;
+
+  document.getElementById("term").textContent = term;
+
+  if(mode === "normal"){
+    document.getElementById("questionText").textContent =
+      "説明を答えてください。";
+  }else{
+    document.getElementById("questionText").textContent =
+      "穴埋め部分を答えてください：";
+  }
+
+  document.getElementById("answerBox").style.display = "none";
+
+  if(mode === "blank"){
+    document.getElementById("answerBox").textContent = makeBlank(ans);
+  }else{
+    document.getElementById("answerBox").textContent = ans;
+  }
+}
+
+function showAnswer(){
+  document.getElementById("answerBox").style.display = "block";
+}
+
+function next(){
+  idx = (idx + 1) % DATA.length;
+  render();
+}
+
+// 初期表示
+render();
+</script>
+
+</body>
+</html>
